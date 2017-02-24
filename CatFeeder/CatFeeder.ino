@@ -8,15 +8,14 @@
 
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
-//#include <Adafruit_PWMServoDriver.h>
 
 /* Pins
  * Technically shield is intitialized in Adafruit's files
  * But good to know who's in use for future pin assignments
  */
-#define PIN_MOTOR_SDA 2
-#define PIN_MOTOR_SCL 3
-#define PIN_BUTTON    4
+#define PIN_MOTOR_SDA 4
+#define PIN_MOTOR_SCL 5
+#define PIN_BUTTON    12
 
 /* Motor setup
  * Using Adafruit's motor driver on I2C interface  
@@ -36,7 +35,7 @@ Adafruit_StepperMotor *motor = AFMS.getStepper(200,1);
 int btn_currentState;
 int btn_lastState;
 unsigned long ms_lastBounce;
-unsigned long ms_nextFeeding;
+unsigned long ms_nextFeeding = TWELVE_HOURS_MS;
 
 /* FeedCharlie()
  * Rotate the motor halfway (we have a 200 step motor)
@@ -46,6 +45,7 @@ void FeedCharlie()
 {
   motor->step(100,FORWARD,DOUBLE);
   ms_nextFeeding = millis() + TWELVE_HOURS_MS;
+  motor->release();
 }
 
 /* setup()
@@ -58,6 +58,7 @@ void setup()
   AFMS.begin();  
   motor->setSpeed(30);
   pinMode(PIN_BUTTON, INPUT_PULLUP);
+  motor->release();
 }
 
 /* loop()
