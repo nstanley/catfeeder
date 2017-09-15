@@ -8,6 +8,9 @@
 
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
+#include <ESP8266WiFi.h>
+//Nick's WiFi credentials, Adafruit IO Key, etc
+#include <NicksCreds.h>
 
 /* Pins
  * Technically shield is intitialized in Adafruit's files
@@ -36,16 +39,21 @@ int btn_currentState;
 int btn_lastState;
 unsigned long ms_lastBounce;
 unsigned long ms_nextFeeding = TWELVE_HOURS_MS;
+unsigned long ms_lastFeeding;
+bool overflow = false;
 
 /* FeedCharlie()
  * Rotate the motor halfway (we have a 200 step motor)
  * Update next time to be fed again in 12 hours
+ * Watch for millis() overflow, to be handled in loop()
  */
 void FeedCharlie()
 {
+  ms_lastFeeding = ms_nextFeeding;
   motor->step(100,FORWARD,DOUBLE);
   ms_nextFeeding = millis() + TWELVE_HOURS_MS;
   motor->release();
+  overflow = (ms_lastFeeding > ms_nextFeeding);
 }
 
 /* setup()
@@ -55,6 +63,7 @@ void FeedCharlie()
  */
 void setup() 
 {
+  WiFi.begin(NICKS_SSID, NICKS_PASS);
   AFMS.begin();  
   motor->setSpeed(30);
   pinMode(PIN_BUTTON, INPUT_PULLUP);
@@ -91,6 +100,10 @@ void loop()
   btn_lastState = btn_state;
 
   /* Timed Feeding */
-  if(millis() > ms_nextFeeding)
+  //If our next feeding happens over the millis() overflow,
+  //wait until it loops back before feeding logic processing
+  if(overflow)
+    overflow = (millis() < ms_lastFeeding);
+  if(millis() > ms_nextFeeding && !overflow)
     FeedCharlie();
 }
